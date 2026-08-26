@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum NodeType {
+  FOLDER
+  FILE
+}
+
+enum ShareType {
+  PUBLIC_LINK
+  RESTRICTED
+}
+
+enum ShareRole {
+  VIEWER
+}
+
+enum UploadStatus {
+  PENDING
+  COMPLETED
+  ABORTED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String?
+  name         String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  oauthAccounts   OAuthAccount[]
+  refreshTokens   RefreshToken[]
+  dataRooms       DataRoom[]
+  createdNodes    Node[]           @relation("NodeCreatedBy")
+  fileVersions    FileVersion[]
+  uploads         Upload[]
+  createdShares   Share[]
+  shareRecipients ShareRecipient[]
+}
+
+model OAuthAccount {
+  id                String   @id @default(uuid()) @db.Uuid
+  provider          String
+  providerAccountId String
+  userId            String   @db.Uuid
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+model DataRoom {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @db.VarChar(255)
+  ownerId   String    @db.Uuid
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  nodes   Node[]
+  uploads Upload[]
+  shares  Share[]
+
+  @@index([ownerId, deletedAt])
+}
+
+model Node {
+  id         String  @id @default(uuid()) @db.Uuid
+  dataRoomId String  @db.Uuid
+  parentId   String? @db.Uuid
+
+  type  NodeType
+  name  String   @db.VarChar(255)
+  path  String
+  depth Int      @default(0)
+
+  size           Int     @default(0)
+  mimeType       String?
+  storageKey     String?
+  checksum       String?
+  currentVersion Int     @default(1)
+
+  subtreeSize        BigInt @default(0)
+  subtreeFileCount   Int    @default(0)
+  subtreeFolderCount Int    @default(0)
+
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  dataRoom  DataRoom      @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  parent    Node?         @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Node[]        @relation("NodeChildren")
+  createdBy User          @relation("NodeCreatedBy", fields: [createdById], references: [id])
+  versions  FileVersion[]
+  shares    Share[]
+  uploads   Upload[]
+
+  @@index([dataRoomId, parentId, deletedAt, type, name])
+  @@index([dataRoomId, path])
+  @@index([dataRoomId, deletedAt])
+  @@index([createdById])
+}
+
+model FileVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  nodeId      String   @db.Uuid
+  version     Int
+  size        Int
+  mimeType    String
+  storageKey  String
+  checksum    String?
+  createdById String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  node      Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@unique([nodeId, version])
+  @@index([createdById])
+}
+
+model Upload {
+  id          String       @id @default(uuid()) @db.Uuid
+  dataRoomId  String       @db.Uuid
+  parentId    String?      @db.Uuid
+  userId      String       @db.Uuid
+  name        String       @db.VarChar(255)
+  size        Int
+  mimeType    String
+  storageKey  String
+  status      UploadStatus @default(PENDING)
+  expiresAt   DateTime
+  createdAt   DateTime     @default(now())
+  completedAt DateTime?
+
+  dataRoom DataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  parent   Node?    @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([dataRoomId, status])
+}
+
+model Share {
+  id          String    @id @default(uuid()) @db.Uuid
+  dataRoomId  String    @db.Uuid
+  nodeId      String?   @db.Uuid
+  type        ShareType
+  role        ShareRole @default(VIEWER)
+  token       String?   @unique
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  dataRoom   DataRoom         @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  node       Node?            @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  createdBy  User             @relation(fields: [createdById], references: [id])
+  recipients ShareRecipient[]
+
+  @@index([dataRoomId, nodeId, revokedAt])
+  @@index([createdById, revokedAt])
+}
+
+model ShareRecipient {
+  id         String    @id @default(uuid()) @db.Uuid
+  shareId    String    @db.Uuid
+  email      String
+  userId     String?   @db.Uuid
+  invitedAt  DateTime  @default(now())
+  acceptedAt DateTime?
+
+  share Share @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([shareId, email])
+  @@index([email])
+  @@index([userId])
+}

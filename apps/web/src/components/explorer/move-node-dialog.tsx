@@ -2,15 +2,8 @@
 
 import { useEffect, useState, type Ref } from 'react';
 import { ConflictStrategy, NodeType, type NodeSummary } from '@dataroom/shared';
+import { ResponsiveDialog } from '@/components/common/responsive-dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { useDialog, type DialogHandle } from '@/hooks/use-dialog';
 import { useMoveNode } from '@/hooks/use-nodes';
 import { FolderPicker } from './folder-picker';
@@ -39,24 +32,13 @@ export function MoveNodeDialog({ ref, dataRoomId, rootLabel }: MoveNodeDialogPro
   const isSamePlace = target === node.parentId;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="truncate">Move “{node.name}”</DialogTitle>
-          <DialogDescription>
-            Pick the folder to move it into. A name clash keeps both copies.
-          </DialogDescription>
-        </DialogHeader>
-
-        <FolderPicker
-          dataRoomId={dataRoomId}
-          rootLabel={rootLabel}
-          disabledIds={node.type === NodeType.FOLDER ? [node.id] : []}
-          value={target}
-          onChange={setTarget}
-        />
-
-        <DialogFooter>
+    <ResponsiveDialog
+      open={isOpen}
+      onOpenChange={setOpen}
+      title={`Move “${node.name}”`}
+      description="Pick the folder to move it into. A name clash keeps both copies."
+      footer={
+        <>
           <Button variant="ghost" onClick={close}>
             Cancel
           </Button>
@@ -71,8 +53,16 @@ export function MoveNodeDialog({ ref, dataRoomId, rootLabel }: MoveNodeDialogPro
           >
             {isSamePlace ? 'Already here' : 'Move here'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <FolderPicker
+        dataRoomId={dataRoomId}
+        rootLabel={rootLabel}
+        disabledIds={node.type === NodeType.FOLDER ? [node.id] : []}
+        value={target}
+        onChange={setTarget}
+      />
+    </ResponsiveDialog>
   );
 }

@@ -1,13 +1,7 @@
 'use client';
 
 import type { Ref } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/common/responsive-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDialog, type DialogHandle } from '@/hooks/use-dialog';
@@ -34,22 +28,21 @@ export function ShareDialog({ ref }: { ref: Ref<DialogHandle<ShareTarget>> }) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="truncate">Share “{target.name}”</DialogTitle>
-          <DialogDescription>
-            Recipients get read-only access to this item and everything nested inside it.
-          </DialogDescription>
-        </DialogHeader>
-
+    <ResponsiveDialog
+      open={isOpen}
+      onOpenChange={setOpen}
+      title={`Share “${target.name}”`}
+      description="Recipients get read-only access to this item and everything nested inside it."
+      className="sm:max-w-lg"
+    >
+      <div>
         {isPending ? (
-          <div className="space-y-3 py-2">
+          <div className="space-y-3">
             <Skeleton className="h-9 w-full" />
             <Skeleton className="h-24 w-full" />
           </div>
         ) : (
-          <Tabs defaultValue="people" className="pt-1">
+          <Tabs defaultValue="people">
             <TabsList className="w-full">
               <TabsTrigger value="people" className="flex-1">
                 Invite people
@@ -76,7 +69,7 @@ export function ShareDialog({ ref }: { ref: Ref<DialogHandle<ShareTarget>> }) {
             </TabsContent>
           </Tabs>
         )}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ResponsiveDialog>
   );
 }

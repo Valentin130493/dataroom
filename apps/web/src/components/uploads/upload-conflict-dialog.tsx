@@ -2,15 +2,8 @@
 
 import type { Ref } from 'react';
 import { ConflictStrategy } from '@dataroom/shared';
+import { ResponsiveDialog } from '@/components/common/responsive-dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { useDialog, type DialogHandle } from '@/hooks/use-dialog';
 import { pluralize } from '@/lib/format';
 
@@ -37,37 +30,32 @@ export function UploadConflictDialog({ ref, onResolve }: UploadConflictDialogPro
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {pluralize(payload.conflicting.length, 'file')} already{' '}
-            {payload.conflicting.length === 1 ? 'exists' : 'exist'} here
-          </DialogTitle>
-          <DialogDescription>Choose what to do with the matching names.</DialogDescription>
-        </DialogHeader>
-
-        <ul className="scrollbar-thin max-h-40 space-y-1 overflow-y-auto rounded-lg border p-3 text-sm">
-          {payload.conflicting.map((name) => (
-            <li key={name} className="truncate text-muted-foreground">
-              {name}
-            </li>
-          ))}
-        </ul>
-
-        <DialogFooter className="sm:justify-between">
+    <ResponsiveDialog
+      open={isOpen}
+      onOpenChange={setOpen}
+      title={`${pluralize(payload.conflicting.length, 'file')} already ${
+        payload.conflicting.length === 1 ? 'exists' : 'exist'
+      } here`}
+      description="Choose what to do with the matching names."
+      footer={
+        <>
           <Button variant="ghost" onClick={close}>
             Cancel
           </Button>
-
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => resolve(ConflictStrategy.KEEP_BOTH)}>
-              Keep both
-            </Button>
-            <Button onClick={() => resolve(ConflictStrategy.REPLACE)}>Upload as new version</Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button variant="outline" onClick={() => resolve(ConflictStrategy.KEEP_BOTH)}>
+            Keep both
+          </Button>
+          <Button onClick={() => resolve(ConflictStrategy.REPLACE)}>Upload as new version</Button>
+        </>
+      }
+    >
+      <ul className="scrollbar-thin max-h-40 space-y-1 overflow-y-auto rounded-lg border p-3 text-sm">
+        {payload.conflicting.map((name) => (
+          <li key={name} className="truncate text-muted-foreground">
+            {name}
+          </li>
+        ))}
+      </ul>
+    </ResponsiveDialog>
   );
 }

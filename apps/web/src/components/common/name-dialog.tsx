@@ -3,16 +3,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { nameSchema } from '@dataroom/shared';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ResponsiveDialog } from './responsive-dialog';
 
 interface NameDialogProps {
   open: boolean;
@@ -61,44 +54,45 @@ export function NameDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <form onSubmit={submit}>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            {description ? <DialogDescription>{description}</DialogDescription> : null}
-          </DialogHeader>
-
-          <div className="space-y-1.5 py-4">
-            <Label htmlFor="name-dialog-input">{label}</Label>
-            <Input
-              id="name-dialog-input"
-              autoFocus
-              value={value}
-              aria-invalid={Boolean(error)}
-              onChange={(event) => {
-                setValue(event.target.value);
-                setError(null);
-              }}
-              onFocus={(event) => event.currentTarget.select()}
-            />
-            {error ? (
-              <p role="alert" className="text-xs text-destructive">
-                {error}
-              </p>
-            ) : null}
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isPending || value.trim().length === 0}>
-              {submitLabel}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      description={description}
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="name-dialog-form"
+            disabled={isPending || value.trim().length === 0}
+          >
+            {submitLabel}
+          </Button>
+        </>
+      }
+    >
+      <form id="name-dialog-form" onSubmit={submit} className="space-y-1.5">
+        <Label htmlFor="name-dialog-input">{label}</Label>
+        <Input
+          id="name-dialog-input"
+          autoFocus
+          value={value}
+          aria-invalid={Boolean(error)}
+          onChange={(event) => {
+            setValue(event.target.value);
+            setError(null);
+          }}
+          onFocus={(event) => event.currentTarget.select()}
+        />
+        {error ? (
+          <p role="alert" className="text-xs text-destructive">
+            {error}
+          </p>
+        ) : null}
+      </form>
+    </ResponsiveDialog>
   );
 }

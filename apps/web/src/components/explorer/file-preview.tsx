@@ -47,15 +47,15 @@ export function FilePreview({ isOpen, onOpenChange, target, source }: FilePrevie
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[85vh] flex-col gap-0 p-0 sm:max-w-5xl">
-        <DialogHeader className="flex-row items-center gap-3 border-b px-4 py-3">
+      <DialogContent className="flex h-dvh max-w-none flex-col gap-0 rounded-none p-0 sm:h-[85vh] sm:max-w-5xl sm:rounded-xl">
+        <DialogHeader className="flex-row items-center gap-3 border-b px-4 py-3 pr-12">
           <div className="min-w-0 flex-1">
             <DialogTitle className="truncate text-base">{target.name}</DialogTitle>
             <DialogDescription className="text-xs">{subtitle}</DialogDescription>
           </div>
 
           {source.url ? (
-            <div className="flex items-center gap-1">
+            <div className="hidden items-center gap-1 sm:flex">
               <Button variant="outline" size="sm" asChild>
                 <a href={source.url} target="_blank" rel="noreferrer">
                   <ExternalLink />
@@ -91,6 +91,23 @@ export function FilePreview({ isOpen, onOpenChange, target, source }: FilePrevie
             />
           )}
         </div>
+
+        {source.url ? (
+          <div className="flex items-center gap-2 border-t px-4 py-2 sm:hidden">
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <a href={source.url} target="_blank" rel="noreferrer">
+                <ExternalLink />
+                Open
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1" asChild>
+              <a href={source.url} download={target.name}>
+                <Download />
+                Download
+              </a>
+            </Button>
+          </div>
+        ) : null}
 
         {source.versions && source.versions.length > 1 ? (
           <div className="scrollbar-thin max-h-32 overflow-y-auto border-t px-4 py-3">

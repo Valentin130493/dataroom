@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CookieOptions, Response } from 'express';
+import { ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME } from '@dataroom/shared';
 import { Env } from '../config/env';
 import { TokenPair, TokenService } from './token.service';
 
-export const ACCESS_COOKIE = 'dr_access';
-export const REFRESH_COOKIE = 'dr_refresh';
+export const ACCESS_COOKIE = ACCESS_COOKIE_NAME;
+export const REFRESH_COOKIE = REFRESH_COOKIE_NAME;
 
 @Injectable()
 export class CookieService {

@@ -11,8 +11,8 @@ read-only access to the other side — either to named people or through a publi
 
 | | URL |
 |---|---|
-| Web | _(fill in after deploy)_ |
-| API | _(fill in after deploy)_ |
+| Web | https://dataroom-web-sooty.vercel.app |
+| API | https://dataroom-api-tawny.vercel.app |
 
 Seeded demo accounts: `owner@acme.test` / `guest@acme.test`, password `password123`.
 The guest account has a folder shared with it, so permissioned sharing can be checked from both

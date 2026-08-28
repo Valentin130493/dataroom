@@ -20,3 +20,6 @@ export const UPLOAD_CONCURRENCY = 3;
 export const MAX_UPLOAD_BATCH = 50;
 
 export const SEARCH_MIN_QUERY_LENGTH = 2;
+
+export const ACCESS_COOKIE_NAME = 'dr_access';
+export const REFRESH_COOKIE_NAME = 'dr_refresh';

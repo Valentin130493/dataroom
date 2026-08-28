@@ -1,11 +1,31 @@
+import { randomUUID } from 'node:crypto';
 import { NodeType, PrismaClient, ShareType } from '@prisma/client';
+import { createClient } from '@supabase/supabase-js';
 import { PasswordService } from '../src/auth/password.service';
+import { buildSamplePdf } from './sample-pdf';
 
 const prisma = new PrismaClient();
 const passwords = new PasswordService();
 
+const storage = createClient(
+  requireEnv('SUPABASE_URL'),
+  requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+  { auth: { persistSession: false } },
+).storage.from(process.env.SUPABASE_STORAGE_BUCKET ?? 'dataroom-files');
+
+const ROOM_NAME = 'Project Atlas';
 const OWNER = { email: 'owner@acme.test', password: 'password123', name: 'Dana Owner' };
 const GUEST = { email: 'guest@acme.test', password: 'password123', name: 'Sam Guest' };
+
+function requireEnv(key: string): string {
+  const value = process.env[key];
+
+  if (!value) {
+    throw new Error(`${key} is required to seed demo documents`);
+  }
+
+  return value;
+}
 
 async function upsertUser(profile: typeof OWNER) {
   const passwordHash = await passwords.hash(profile.password);
@@ -17,7 +37,32 @@ async function upsertUser(profile: typeof OWNER) {
   });
 }
 
-async function createFolder(dataRoomId: string, createdById: string, name: string, parent?: { id: string; path: string; depth: number }) {
+async function resetRoom(ownerId: string): Promise<void> {
+  const rooms = await prisma.dataRoom.findMany({ where: { ownerId, name: ROOM_NAME } });
+
+  for (const room of rooms) {
+    const { data } = await storage.list(room.id);
+
+    if (data?.length) {
+      await storage.remove(data.map((file) => `${room.id}/${file.name}`));
+    }
+
+    await prisma.dataRoom.delete({ where: { id: room.id } });
+  }
+}
+
+interface FolderRef {
+  id: string;
+  path: string;
+  depth: number;
+}
+
+async function createFolder(
+  dataRoomId: string,
+  createdById: string,
+  name: string,
+  parent?: FolderRef,
+): Promise<FolderRef> {
   return prisma.node.create({
     data: {
       dataRoomId,
@@ -28,40 +73,100 @@ async function createFolder(dataRoomId: string, createdById: string, name: strin
       path: parent ? `${parent.path}${parent.id}/` : '/',
       depth: parent ? parent.depth + 1 : 0,
     },
+    select: { id: true, path: true, depth: true },
   });
 }
 
-async function main() {
+async function createFile(
+  dataRoomId: string,
+  createdById: string,
+  name: string,
+  parent: FolderRef,
+  pdf: Buffer,
+): Promise<void> {
+  const storageKey = `${dataRoomId}/${randomUUID()}.pdf`;
+  const { error } = await storage.upload(storageKey, pdf, { contentType: 'application/pdf' });
+
+  if (error) {
+    throw new Error(`Could not upload ${name}: ${error.message}`);
+  }
+
+  await prisma.node.create({
+    data: {
+      dataRoomId,
+      createdById,
+      name,
+      type: NodeType.FILE,
+      parentId: parent.id,
+      path: `${parent.path}${parent.id}/`,
+      depth: parent.depth + 1,
+      size: pdf.length,
+      mimeType: 'application/pdf',
+      storageKey,
+      subtreeSize: BigInt(pdf.length),
+      subtreeFileCount: 1,
+      versions: {
+        create: {
+          version: 1,
+          size: pdf.length,
+          mimeType: 'application/pdf',
+          storageKey,
+          createdById,
+        },
+      },
+    },
+  });
+
+  const ancestors = parent.path.split('/').filter(Boolean).concat(parent.id);
+
+  await prisma.node.updateMany({
+    where: { id: { in: ancestors } },
+    data: { subtreeSize: { increment: BigInt(pdf.length) }, subtreeFileCount: { increment: 1 } },
+  });
+}
+
+async function main(): Promise<void> {
   const owner = await upsertUser(OWNER);
   const guest = await upsertUser(GUEST);
 
-  const existing = await prisma.dataRoom.findFirst({
-    where: { ownerId: owner.id, name: 'Project Atlas', deletedAt: null },
-  });
+  await resetRoom(owner.id);
 
-  if (existing) {
-    console.log('Seed data already present, skipping.');
-    return;
-  }
-
-  const room = await prisma.dataRoom.create({
-    data: { name: 'Project Atlas', ownerId: owner.id },
-  });
+  const room = await prisma.dataRoom.create({ data: { name: ROOM_NAME, ownerId: owner.id } });
 
   const financials = await createFolder(room.id, owner.id, 'Financials');
   const legal = await createFolder(room.id, owner.id, 'Legal');
-  await createFolder(room.id, owner.id, '2024', financials);
-  await createFolder(room.id, owner.id, 'Contracts', legal);
+  const year = await createFolder(room.id, owner.id, '2024', financials);
+  const contracts = await createFolder(room.id, owner.id, 'Contracts', legal);
 
-  await prisma.node.update({
-    where: { id: financials.id },
-    data: { subtreeFolderCount: 1 },
+  await prisma.node.updateMany({
+    where: { id: { in: [financials.id, legal.id] } },
+    data: { subtreeFolderCount: { increment: 1 } },
   });
 
-  await prisma.node.update({
-    where: { id: legal.id },
-    data: { subtreeFolderCount: 1 },
-  });
+  await createFile(
+    room.id,
+    owner.id,
+    'Balance sheet.pdf',
+    year,
+    buildSamplePdf('Balance sheet 2024', [
+      'Prepared for the Acme Corp. acquisition.',
+      'Total assets: 128,400,000',
+      'Total liabilities: 47,900,000',
+      'This is sample content generated by the seed script.',
+    ]),
+  );
+
+  await createFile(
+    room.id,
+    owner.id,
+    'Master agreement.pdf',
+    contracts,
+    buildSamplePdf('Master agreement', [
+      'Between Acme Corp. and the counterparty.',
+      'Effective as of 1 January 2024.',
+      'This is sample content generated by the seed script.',
+    ]),
+  );
 
   await prisma.share.create({
     data: {
@@ -73,7 +178,8 @@ async function main() {
     },
   });
 
-  console.log(`Seeded data room "${room.name}" for ${owner.email} (password: ${OWNER.password})`);
+  console.log(`Seeded "${ROOM_NAME}" for ${OWNER.email} (password: ${OWNER.password})`);
+  console.log(`"Legal" is shared with ${GUEST.email}`);
 }
 
 main()

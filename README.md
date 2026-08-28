@@ -14,9 +14,21 @@ read-only access to the other side — either to named people or through a publi
 | Web | https://dataroom-web-sooty.vercel.app |
 | API | https://dataroom-api-tawny.vercel.app |
 
-Seeded demo accounts: `owner@acme.test` / `guest@acme.test`, password `password123`.
-The guest account has a folder shared with it, so permissioned sharing can be checked from both
-sides.
+### Demo accounts
+
+| Email | Password | What it sees |
+|---|---|---|
+| `owner@acme.test` | `password123` | Owns the **Project Atlas** data room with everything in it |
+| `guest@acme.test` | `password123` | Was granted read-only access to the **Legal** folder only |
+
+Sign in as the owner to create, upload, move and share; sign in as the guest to see the same tree
+from a recipient's side, where the rest of the room is invisible and nothing can be edited. Both
+accounts come from `pnpm db:seed`, which also puts two real PDFs in the room:
+
+```
+Financials/2024/Balance sheet.pdf
+Legal/Contracts/Master agreement.pdf
+```
 
 ---
 

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { useSignUp } from '@/hooks/use-auth';
 import { ApiError } from '@/lib/api/http';
+import { trimmed } from '@/lib/forms';
 import { Field } from './field';
 import { GoogleButton } from './google-button';
 import { PasswordInput } from './password-input';
@@ -27,7 +28,12 @@ export function SignUpForm() {
     <div className="space-y-5">
       <form onSubmit={submit} className="space-y-4" noValidate>
         <Field id="name" label="Name" error={form.formState.errors.name?.message}>
-          <Input id="name" autoComplete="name" placeholder="Dana Scully" {...form.register('name')} />
+          <Input
+            id="name"
+            autoComplete="name"
+            placeholder="Dana Scully"
+            {...trimmed(form, form.register('name'))}
+          />
         </Field>
 
         <Field id="email" label="Email" error={form.formState.errors.email?.message}>
@@ -37,7 +43,7 @@ export function SignUpForm() {
             autoComplete="email"
             placeholder="you@company.com"
             aria-invalid={Boolean(form.formState.errors.email)}
-            {...form.register('email')}
+            {...trimmed(form, form.register('email'))}
           />
         </Field>
 

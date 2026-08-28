@@ -6,7 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { ApiErrorBody, ErrorCode } from '@dataroom/shared';
 
 const STATUS_TO_CODE: Record<number, ErrorCode> = {
@@ -23,11 +23,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    const response = host.switchToHttp().getResponse<Response>();
+    const http = host.switchToHttp();
+    const response = http.getResponse<Response>();
+    const request = http.getRequest<Request>();
     const body = this.toBody(exception);
 
     if (body.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(body.message, exception instanceof Error ? exception.stack : undefined);
+      const cause = exception instanceof Error ? exception : new Error(String(exception));
+
+      this.logger.error(
+        `${request.method} ${request.originalUrl} failed: ${cause.message}`,
+        cause.stack,
+      );
     }
 
     response.status(body.statusCode).json(body);

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { useSignIn } from '@/hooks/use-auth';
 import { ApiError } from '@/lib/api/http';
+import { trimmed } from '@/lib/forms';
 import { Field } from './field';
 import { GoogleButton } from './google-button';
 import { PasswordInput } from './password-input';
@@ -31,7 +32,7 @@ export function SignInForm() {
             autoComplete="email"
             placeholder="you@company.com"
             aria-invalid={Boolean(form.formState.errors.email)}
-            {...form.register('email')}
+            {...trimmed(form, form.register('email'))}
           />
         </Field>
 

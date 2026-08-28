@@ -16,7 +16,25 @@ const envSchema = z.object({
   JWT_ACCESS_TTL: z.string().default('15m'),
   JWT_REFRESH_TTL: z.string().default('7d'),
 
-  COOKIE_DOMAIN: optional(z.string()),
+  COOKIE_DOMAIN: optional(
+    z
+      .string()
+      .transform((value) =>
+        value
+          .trim()
+          .replace(/^[a-z]+:\/\//i, '')
+          .replace(/[/?#].*$/, '')
+          .replace(/:\d+$/, ''),
+      )
+      .pipe(
+        z
+          .string()
+          .regex(
+            /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i,
+            'COOKIE_DOMAIN must be a bare hostname such as example.com, not a URL',
+          ),
+      ),
+  ),
   CORS_ORIGINS: z
     .string()
     .default('http://localhost:3000')

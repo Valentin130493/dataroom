@@ -1,20 +1,19 @@
 import { NodeType, PrismaClient, ShareType } from '@prisma/client';
-import { hash } from '@node-rs/argon2';
+import { PasswordService } from '../src/auth/password.service';
 
 const prisma = new PrismaClient();
+const passwords = new PasswordService();
 
 const OWNER = { email: 'owner@acme.test', password: 'password123', name: 'Dana Owner' };
 const GUEST = { email: 'guest@acme.test', password: 'password123', name: 'Sam Guest' };
 
 async function upsertUser(profile: typeof OWNER) {
+  const passwordHash = await passwords.hash(profile.password);
+
   return prisma.user.upsert({
     where: { email: profile.email },
-    update: {},
-    create: {
-      email: profile.email,
-      name: profile.name,
-      passwordHash: await hash(profile.password),
-    },
+    update: { passwordHash },
+    create: { email: profile.email, name: profile.name, passwordHash },
   });
 }
 

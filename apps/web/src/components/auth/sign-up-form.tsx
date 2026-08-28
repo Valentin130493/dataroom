@@ -10,6 +10,7 @@ import { useSignUp } from '@/hooks/use-auth';
 import { ApiError } from '@/lib/api/http';
 import { Field } from './field';
 import { GoogleButton } from './google-button';
+import { PasswordInput } from './password-input';
 
 export function SignUpForm() {
   const signUp = useSignUp();
@@ -46,9 +47,8 @@ export function SignUpForm() {
           error={form.formState.errors.password?.message}
           hint="At least 8 characters"
         >
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="new-password"
             aria-invalid={Boolean(form.formState.errors.password)}
             {...form.register('password')}

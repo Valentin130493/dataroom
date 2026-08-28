@@ -6,7 +6,7 @@ read-only access to the other side — either to named people or through a publi
 - **Frontend** — Next.js 16 (App Router) · TypeScript · Tailwind v4 · shadcn/ui · TanStack Query
 - **Backend** — NestJS 11 · Prisma 6 · PostgreSQL
 - **Storage** — Supabase Storage, addressed through a swappable `StorageProvider` port
-- **Auth** — email/password (argon2) plus Google OAuth behind a feature flag; JWT access token +
+- **Auth** — email/password (scrypt) plus Google OAuth behind a feature flag; JWT access token +
   rotating refresh token in `httpOnly` cookies
 
 | | URL |
@@ -367,6 +367,10 @@ pnpm build
   Nest is compiled by `tsc` rather than by Vercel's bundler on purpose: the bundler cannot emit
   decorator metadata, which Nest's dependency injection relies on. The function is a plain JS file
   that requires the already-compiled `dist`, so the two never meet.
+
+  Passwords are hashed with `scrypt` from Node's own `crypto` rather than a native argon2 binding.
+  In a pnpm workspace the native `.node` binary lives above the project root, outside what the
+  function bundler will trace, so it is simply missing at runtime; a built-in has no such problem.
 - **Database + storage → Supabase.** `DATABASE_URL` is the **transaction pooler** string (port 6543,
   `?pgbouncer=true&connection_limit=1`); `DIRECT_URL` is the **direct** one (5432). Both are
   required: Prisma Migrate takes an advisory lock, which pgbouncer's transaction pooling does not

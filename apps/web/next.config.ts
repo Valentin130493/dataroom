@@ -9,13 +9,13 @@ function resolveApiOrigin(): string {
     return configured.replace(/\/+$/, '');
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    return DEV_API_ORIGIN;
+  if (process.env.VERCEL) {
+    throw new Error(
+      'API_ORIGIN is required on Vercel: it is the origin the /api/* rewrite proxies to.',
+    );
   }
 
-  throw new Error(
-    'API_ORIGIN is required for a production build: it is the origin the /api/* rewrite proxies to.',
-  );
+  return DEV_API_ORIGIN;
 }
 
 const nextConfig: NextConfig = {

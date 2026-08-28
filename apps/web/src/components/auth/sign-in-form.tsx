@@ -10,6 +10,7 @@ import { useSignIn } from '@/hooks/use-auth';
 import { ApiError } from '@/lib/api/http';
 import { Field } from './field';
 import { GoogleButton } from './google-button';
+import { PasswordInput } from './password-input';
 
 export function SignInForm() {
   const signIn = useSignIn();
@@ -35,9 +36,8 @@ export function SignInForm() {
         </Field>
 
         <Field id="password" label="Password" error={form.formState.errors.password?.message}>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             aria-invalid={Boolean(form.formState.errors.password)}
             {...form.register('password')}

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { User } from '@prisma/client';
-import { hash, verify } from '@node-rs/argon2';
 import { AuthConfig, ErrorCode, SignInInput, SignUpInput } from '@dataroom/shared';
+import { PasswordService } from './password.service';
 import { DomainException } from '../common/errors/domain.exception';
 import { Env } from '../config/env';
 import { UsersService } from '../users/users.service';
@@ -11,6 +11,7 @@ import { UsersService } from '../users/users.service';
 export class AuthService {
   constructor(
     private readonly users: UsersService,
+    private readonly passwords: PasswordService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -39,7 +40,7 @@ export class AuthService {
     const user = await this.users.create({
       email: input.email,
       name: input.name ?? null,
-      passwordHash: await hash(input.password),
+      passwordHash: await this.passwords.hash(input.password),
     });
 
     await this.users.claimPendingShares(user);
@@ -50,7 +51,7 @@ export class AuthService {
   async signIn(input: SignInInput): Promise<User> {
     const user = await this.users.findByEmail(input.email);
 
-    if (!user?.passwordHash || !(await verify(user.passwordHash, input.password))) {
+    if (!user?.passwordHash || !(await this.passwords.verify(user.passwordHash, input.password))) {
       throw new DomainException(ErrorCode.INVALID_CREDENTIALS, 401, 'Invalid email or password');
     }
 

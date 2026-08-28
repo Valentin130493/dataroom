@@ -354,21 +354,27 @@ pnpm build
 
 ## Deploying
 
-- **Web → Vercel.** Root directory `apps/web`. Set `API_ORIGIN` to the API's public URL; the
-  `/api/:path*` rewrite in `next.config.ts` keeps the session cookie first-party.
-- **API → Render.** `render.yaml` describes the service; it builds `apps/api/Dockerfile` from the
-  repo root. The container runs `prisma migrate deploy` before starting, so the schema is applied on
-  every deploy without a manual step, and the storage bucket is created on first boot. Set
-  `CORS_ORIGINS` and `WEB_APP_URL` to the Vercel URL.
+- **Web → Vercel.** Root Directory `apps/web`, with *Include files outside of the Root Directory*
+  enabled — the app depends on the workspace package `@dataroom/shared`, which lives outside that
+  directory. Its `build` script builds that package first, so the order does not depend on the host.
+  The single variable is `API_ORIGIN`, pointing at the API's public URL; the `/api/:path*` rewrite in
+  `next.config.ts` then keeps the session cookie first-party.
+- **API → Vercel**, as a second project with Root Directory `apps/api` and no framework preset.
+  `apps/api/vercel.json` builds the shared package, generates the Prisma client, applies migrations
+  and compiles Nest; `api/index.js` then boots Nest onto an Express instance once and caches it
+  across invocations, and a catch-all rewrite routes every path into that function.
+
+  Nest is compiled by `tsc` rather than by Vercel's bundler on purpose: the bundler cannot emit
+  decorator metadata, which Nest's dependency injection relies on. The function is a plain JS file
+  that requires the already-compiled `dist`, so the two never meet.
 - **Database + storage → Supabase.** `DATABASE_URL` is the **transaction pooler** string (port 6543,
   `?pgbouncer=true&connection_limit=1`); `DIRECT_URL` is the **direct** one (5432). Both are
   required: Prisma Migrate takes an advisory lock, which pgbouncer's transaction pooling does not
-  hold, so migrations must bypass the pooler while the runtime keeps using it.
+  hold, so migrations must bypass the pooler while the runtime keeps using it. The Prisma client is
+  generated for `rhel-openssl-3.0.x` alongside the native target so the query engine matches the
+  serverless runtime.
 - Demo data is optional and never runs automatically —
   `pnpm --filter @dataroom/api db:seed` against the deployed database when you want it.
-- Render's free plan sleeps after 15 minutes and Supabase pauses an idle project;
-  `.github/workflows/keepalive.yml` pings `/health` every 10 minutes to keep both awake. Set the
-  repository variable `API_URL` for it.
 
 ## API surface
 

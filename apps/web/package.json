@@ -7,7 +7,7 @@
     "build": "pnpm --filter @dataroom/shared build && next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@dataroom/shared": "workspace:*",

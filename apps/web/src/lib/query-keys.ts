@@ -6,6 +6,7 @@ export const queryKeys = {
   session: ['session'] as const,
   authConfig: ['auth-config'] as const,
   dataRooms: ['data-rooms'] as const,
+  storageUsage: ['storage-usage'] as const,
   dataRoom: (id: string) => ['data-rooms', id] as const,
   nodes: (dataRoomId: string, args: ListArgs) =>
     ['data-rooms', dataRoomId, 'nodes', args.parentId ?? 'root', args.sortBy, args.sortDir] as const,

@@ -10,7 +10,13 @@ import {
   SIGNED_UPLOAD_TTL_SECONDS,
 } from '@dataroom/shared';
 import { Env } from '../config/env';
-import { SignedDownload, SignedUpload, StorageProvider } from './storage.provider';
+import { PrismaService } from '../prisma/prisma.service';
+import {
+  SignedDownload,
+  SignedUpload,
+  StorageProvider,
+  StorageUsageReport,
+} from './storage.provider';
 
 @Injectable()
 export class SupabaseStorageService implements StorageProvider, OnModuleInit {
@@ -18,7 +24,10 @@ export class SupabaseStorageService implements StorageProvider, OnModuleInit {
   private readonly client: SupabaseClient;
   private readonly bucket: string;
 
-  constructor(config: ConfigService<Env, true>) {
+  constructor(
+    config: ConfigService<Env, true>,
+    private readonly prisma: PrismaService,
+  ) {
     this.client = createClient(
       config.get('SUPABASE_URL', { infer: true }),
       config.get('SUPABASE_SERVICE_ROLE_KEY', { infer: true }),
@@ -53,6 +62,20 @@ export class SupabaseStorageService implements StorageProvider, OnModuleInit {
   buildKey(dataRoomId: string, fileName: string): string {
     const extension = extname(fileName).toLowerCase().slice(0, 16);
     return `${dataRoomId}/${randomUUID()}${extension}`;
+  }
+
+  async usage(): Promise<StorageUsageReport> {
+    const [row] = await this.prisma.$queryRaw<{ objects: bigint; bytes: bigint }[]>`
+      SELECT count(*)::bigint AS objects,
+             coalesce(sum((metadata->>'size')::bigint), 0)::bigint AS bytes
+      FROM storage.objects
+      WHERE bucket_id = ${this.bucket}
+    `;
+
+    return {
+      usedBytes: Number(row?.bytes ?? 0),
+      objectCount: Number(row?.objects ?? 0),
+    };
   }
 
   async createSignedUpload(key: string, mimeType: string): Promise<SignedUpload> {

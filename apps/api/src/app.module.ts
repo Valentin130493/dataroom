@@ -18,7 +18,11 @@ import { UsersModule } from './users/users.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, cache: true, validate: validateEnv }),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 300 }],
+      skipIf: () =>
+        process.env.NODE_ENV !== 'production' && process.env.DISABLE_RATE_LIMIT === 'true',
+    }),
     PrismaModule,
     StorageModule,
     AccessModule,

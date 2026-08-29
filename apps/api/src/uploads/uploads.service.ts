@@ -8,6 +8,8 @@ import {
   NodeSummary,
   Permission,
   SIGNED_UPLOAD_TTL_SECONDS,
+  STORAGE_QUOTA_BYTES,
+  StorageUsage,
   UploadTicket,
 } from '@dataroom/shared';
 import { AccessContext } from '../access/access.service';
@@ -35,6 +37,7 @@ export class UploadsService {
     context: AccessContext,
   ): Promise<UploadTicket[]> {
     await this.nodes.resolveParent(dataRoomId, input.parentId, context, Permission.WRITE);
+    await this.assertFitsQuota(input.files.reduce((total, file) => total + file.size, 0));
 
     const userId = this.requireUserId(context);
     const expiresAt = new Date(Date.now() + SIGNED_UPLOAD_TTL_SECONDS * 1000);
@@ -88,37 +91,39 @@ export class UploadsService {
       Permission.WRITE,
     );
 
-    const node = await this.prisma.$transaction(async (tx) => {
-      const existing =
-        input.onConflict === ConflictStrategy.REPLACE
-          ? await this.findReplaceable(tx, upload.dataRoomId, upload.parentId, upload.name)
-          : null;
+    const node = await this.naming.withCollisionRetry(input.onConflict, () =>
+      this.prisma.$transaction(async (tx) => {
+        const existing =
+          input.onConflict === ConflictStrategy.REPLACE
+            ? await this.findReplaceable(tx, upload.dataRoomId, upload.parentId, upload.name)
+            : null;
 
-      const created = existing
-        ? await this.addVersion(tx, existing, upload, userId)
-        : await this.nodes.createFile(tx, {
-            dataRoomId: upload.dataRoomId,
-            parentId: upload.parentId,
-            parent,
-            name: await this.naming.resolve(
-              tx,
-              { dataRoomId: upload.dataRoomId, parentId: upload.parentId },
-              upload.name,
-              input.onConflict,
-            ),
-            size: upload.size,
-            mimeType: upload.mimeType,
-            storageKey: upload.storageKey,
-            userId,
-          });
+        const created = existing
+          ? await this.addVersion(tx, existing, upload, userId)
+          : await this.nodes.createFile(tx, {
+              dataRoomId: upload.dataRoomId,
+              parentId: upload.parentId,
+              parent,
+              name: await this.naming.resolve(
+                tx,
+                { dataRoomId: upload.dataRoomId, parentId: upload.parentId },
+                upload.name,
+                input.onConflict,
+              ),
+              size: upload.size,
+              mimeType: upload.mimeType,
+              storageKey: upload.storageKey,
+              userId,
+            });
 
-      await tx.upload.update({
-        where: { id: upload.id },
-        data: { status: UploadStatus.COMPLETED, completedAt: new Date() },
-      });
+        await tx.upload.update({
+          where: { id: upload.id },
+          data: { status: UploadStatus.COMPLETED, completedAt: new Date() },
+        });
 
-      return created;
-    });
+        return created;
+      }),
+    );
 
     return this.nodes.toSummary(node);
   }
@@ -204,6 +209,30 @@ export class UploadsService {
     });
 
     return updated;
+  }
+
+  async usage(): Promise<StorageUsage> {
+    const report = await this.storage.usage();
+
+    return {
+      usedBytes: report.usedBytes,
+      quotaBytes: STORAGE_QUOTA_BYTES,
+      objectCount: report.objectCount,
+    };
+  }
+
+  private async assertFitsQuota(incomingBytes: number): Promise<void> {
+    const { usedBytes } = await this.storage.usage();
+
+    if (usedBytes + incomingBytes <= STORAGE_QUOTA_BYTES) {
+      return;
+    }
+
+    throw DomainException.conflict(
+      ErrorCode.STORAGE_QUOTA_EXCEEDED,
+      'This upload would exceed the storage quota. Delete something first.',
+      { usedBytes, quotaBytes: STORAGE_QUOTA_BYTES, incomingBytes },
+    );
   }
 
   private requireUserId(context: AccessContext): string {

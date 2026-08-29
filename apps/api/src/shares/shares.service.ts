@@ -182,7 +182,11 @@ export class SharesService {
       throw DomainException.notFound('Share not found');
     }
 
-    await this.access.requireDataRoom(share.dataRoomId, context, Permission.MANAGE);
+    if (share.nodeId) {
+      await this.access.requireNode(share.nodeId, context, Permission.MANAGE);
+    } else {
+      await this.access.requireDataRoom(share.dataRoomId, context, Permission.MANAGE);
+    }
 
     return share;
   }

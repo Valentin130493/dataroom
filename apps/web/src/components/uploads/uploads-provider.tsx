@@ -145,6 +145,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
 
       await queryClient.invalidateQueries({ queryKey: queryKeys.nodeChildren(dataRoomId) });
       await queryClient.invalidateQueries({ queryKey: queryKeys.dataRooms });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.storageUsage });
 
       if (parentId) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.node(parentId) });

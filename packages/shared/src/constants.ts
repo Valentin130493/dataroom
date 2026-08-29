@@ -2,6 +2,8 @@ export const ALLOWED_MIME_TYPES = ['application/pdf'] as const;
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
+export const STORAGE_QUOTA_BYTES = 50 * 1024 * 1024;
+
 export const MAX_FOLDER_DEPTH = 32;
 
 export const MAX_NAME_LENGTH = 255;

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -12,6 +13,7 @@ import {
   ConfirmUploadInput,
   InitUploadInput,
   NodeSummary,
+  StorageUsage,
   UploadTicket,
   confirmUploadSchema,
   initUploadSchema,
@@ -32,6 +34,11 @@ export class UploadsController {
     @Access() context: AccessContext,
   ): Promise<UploadTicket[]> {
     return this.uploads.init(dataRoomId, input, context);
+  }
+
+  @Get('storage/usage')
+  usage(): Promise<StorageUsage> {
+    return this.uploads.usage();
   }
 
   @Post('uploads/confirm')

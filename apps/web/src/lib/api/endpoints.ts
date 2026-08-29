@@ -24,6 +24,7 @@ import type {
   SignInInput,
   SignUpInput,
   SignedContentUrl,
+  StorageUsage,
   UploadTicket,
 } from '@dataroom/shared';
 import { api } from './http';
@@ -79,6 +80,10 @@ export const uploadsApi = {
     api.post<UploadTicket[]>(`/data-rooms/${dataRoomId}/uploads`, input),
   confirm: (input: ConfirmUploadInput) => api.post<NodeSummary>('/uploads/confirm', input),
   abort: (uploadId: string) => api.delete<void>(`/uploads/${uploadId}`),
+};
+
+export const storageApi = {
+  usage: () => api.get<StorageUsage>('/storage/usage'),
 };
 
 export const sharesApi = {

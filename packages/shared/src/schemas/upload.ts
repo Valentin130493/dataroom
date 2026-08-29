@@ -45,3 +45,9 @@ export interface SignedContentUrl {
   url: string;
   expiresAt: string;
 }
+
+export interface StorageUsage {
+  usedBytes: number;
+  quotaBytes: number;
+  objectCount: number;
+}

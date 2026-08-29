@@ -130,30 +130,32 @@ export class NodesService {
 
     this.assertDepth(childDepth(parent));
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      const name = await this.naming.resolve(
-        tx,
-        { dataRoomId, parentId: input.parentId },
-        input.name,
-        ConflictStrategy.FAIL,
-      );
+    const created = await this.naming.withCollisionRetry(ConflictStrategy.FAIL, () =>
+      this.prisma.$transaction(async (tx) => {
+        const name = await this.naming.resolve(
+          tx,
+          { dataRoomId, parentId: input.parentId },
+          input.name,
+          ConflictStrategy.FAIL,
+        );
 
-      const node = await tx.node.create({
-        data: {
-          dataRoomId,
-          parentId: input.parentId,
-          type: NodeType.FOLDER,
-          name,
-          path: childPath(parent),
-          depth: childDepth(parent),
-          createdById: this.requireUserId(context),
-        },
-      });
+        const node = await tx.node.create({
+          data: {
+            dataRoomId,
+            parentId: input.parentId,
+            type: NodeType.FOLDER,
+            name,
+            path: childPath(parent),
+            depth: childDepth(parent),
+            createdById: this.requireUserId(context),
+          },
+        });
 
-      await this.rollup.shift(tx, ancestorIds(node), { size: 0n, files: 0, folders: 1 });
+        await this.rollup.shift(tx, ancestorIds(node), { size: 0n, files: 0, folders: 1 });
 
-      return node;
-    });
+        return node;
+      }),
+    );
 
     return this.toSummary(created);
   }
@@ -213,16 +215,18 @@ export class NodesService {
   ): Promise<NodeSummary> {
     const { node } = await this.access.requireNode(nodeId, context, Permission.WRITE);
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const name = await this.naming.resolve(
-        tx,
-        { dataRoomId: node.dataRoomId, parentId: node.parentId, excludeNodeId: node.id },
-        input.name,
-        input.onConflict,
-      );
+    const updated = await this.naming.withCollisionRetry(input.onConflict, () =>
+      this.prisma.$transaction(async (tx) => {
+        const name = await this.naming.resolve(
+          tx,
+          { dataRoomId: node.dataRoomId, parentId: node.parentId, excludeNodeId: node.id },
+          input.name,
+          input.onConflict,
+        );
 
-      return tx.node.update({ where: { id: node.id }, data: { name } });
-    });
+        return tx.node.update({ where: { id: node.id }, data: { name } });
+      }),
+    );
 
     return this.toSummary(updated);
   }
@@ -239,32 +243,34 @@ export class NodesService {
     this.assertMoveTarget(node, parent);
     await this.assertSubtreeFits(node, childDepth(parent));
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const name = await this.naming.resolve(
-        tx,
-        { dataRoomId: node.dataRoomId, parentId: input.parentId, excludeNodeId: node.id },
-        node.name,
-        input.onConflict,
-      );
+    const updated = await this.naming.withCollisionRetry(input.onConflict, () =>
+      this.prisma.$transaction(async (tx) => {
+        const name = await this.naming.resolve(
+          tx,
+          { dataRoomId: node.dataRoomId, parentId: input.parentId, excludeNodeId: node.id },
+          node.name,
+          input.onConflict,
+        );
 
-      const oldPrefix = subtreePrefix(node);
-      const newPath = childPath(parent);
-      const newPrefix = `${newPath}${node.id}/`;
-      const depthDelta = childDepth(parent) - node.depth;
+        const oldPrefix = subtreePrefix(node);
+        const newPath = childPath(parent);
+        const newPrefix = `${newPath}${node.id}/`;
+        const depthDelta = childDepth(parent) - node.depth;
 
-      const moved = await tx.node.update({
-        where: { id: node.id },
-        data: { parentId: input.parentId, path: newPath, depth: childDepth(parent), name },
-      });
+        const moved = await tx.node.update({
+          where: { id: node.id },
+          data: { parentId: input.parentId, path: newPath, depth: childDepth(parent), name },
+        });
 
-      await this.shiftSubtree(tx, node.dataRoomId, oldPrefix, newPrefix, depthDelta);
+        await this.shiftSubtree(tx, node.dataRoomId, oldPrefix, newPrefix, depthDelta);
 
-      const weight = this.rollup.weightOf(node);
-      await this.rollup.shift(tx, ancestorIds(node), this.rollup.negate(weight));
-      await this.rollup.shift(tx, ancestorIds(moved), weight);
+        const weight = this.rollup.weightOf(node);
+        await this.rollup.shift(tx, ancestorIds(node), this.rollup.negate(weight));
+        await this.rollup.shift(tx, ancestorIds(moved), weight);
 
-      return moved;
-    });
+        return moved;
+      }),
+    );
 
     return this.toSummary(updated);
   }
@@ -512,6 +518,6 @@ export class NodesService {
           ? { updatedAt: sortDir }
           : { name: sortDir };
 
-    return [{ type: 'desc' }, primary, { id: 'asc' }];
+    return [{ type: 'asc' }, primary, { id: 'asc' }];
   }
 }

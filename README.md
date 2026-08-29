@@ -392,6 +392,57 @@ pnpm build
 - Demo data is optional and never runs automatically —
   `pnpm --filter @dataroom/api db:seed` against the deployed database when you want it.
 
+## Tests
+
+```bash
+docker compose -f docker-compose.test.yml up -d   # disposable Postgres on :55432
+pnpm --filter @dataroom/api test                  # 40 unit
+pnpm --filter @dataroom/api test:e2e              # 66 end-to-end
+```
+
+The end-to-end suite boots the real Nest application against a real database and replaces only the
+`StorageProvider` — the port that already existed for swapping object stores. Nothing else is
+mocked, so the tests exercise the actual SQL, the actual transactions and the actual guards.
+
+They refuse to run against anything but a local database, because they truncate every table between
+tests; point `TEST_DATABASE_URL` elsewhere and set `ALLOW_REMOTE_TEST_DB=true` only if you mean it.
+
+What they cover, in rough order of how much they earn their keep:
+
+- **The access matrix** — owner, folder recipient, room recipient, public-link visitor and complete
+  stranger, each against the node itself, an ancestor, a sibling and the room root. This is the part
+  that is expensive to get wrong and tedious to check by hand.
+- **Name conflicts**, including two concurrent uploads of the same name racing each other.
+- **Subtree operations** — delete takes the descendants and the rollups with it, move re-roots the
+  paths, a folder cannot swallow itself.
+- **Sharing lifecycle** — revoke, expiry, and what happens when the shared item is deleted.
+- **Uploads** — per-file cap, storage quota, single-use upload sessions.
+
+Three real defects surfaced the moment these were written: folders sorted below files because
+Postgres orders enums by declaration rather than alphabetically; a race between two uploads of one
+name returned a 500 instead of resolving; and a share recipient trying to manage the share got a
+`404` where `403` is the honest answer.
+
+## Security
+
+- **Passwords** — `scrypt` with a per-user salt, compared with `timingSafeEqual`.
+- **Sessions** — a 15-minute access JWT plus an opaque refresh token stored only as a SHA-256 hash,
+  rotated on every use and revoked on logout. Both cookies are `httpOnly`, `Secure` and `SameSite=Lax`:
+  the browser only ever talks to the app's own origin, so nothing weaker is needed and cross-site
+  requests cannot carry the session.
+- **Authorization** — one `AccessService` decides everything; controllers never reason about it
+  themselves. Items the caller may not see answer `404` rather than `403`, so existence does not leak.
+- **Input** — validated by zod at every boundary, including the environment at boot, which is where an
+  invalid cookie domain used to turn into a 500 on every login.
+- **SQL** — Prisma everywhere; the one raw statement binds its parameters.
+- **Files** — a private bucket, five-minute signed URLs, uploads that never pass through the API, and
+  a MIME and size contract enforced both by the schema and by the bucket itself.
+- **Brute force** — sign-in and sign-up are limited to 10 attempts per minute per address, the rest of
+  the API to 300.
+
+Known and accepted for an MVP: no reuse detection on refresh tokens, sign-up reveals whether an
+email is registered, and signed URLs are bearer capabilities for their five minutes.
+
 ## API surface
 
 ```
@@ -414,7 +465,7 @@ GET    /nodes/:id/delete-preview
 GET    /nodes/:id/content-url               GET    /nodes/:id/versions
 
 POST   /data-rooms/:id/uploads              POST   /uploads/confirm
-DELETE /uploads/:id
+DELETE /uploads/:id                         GET    /storage/usage
 
 POST   /shares                              GET    /shares?dataRoomId&nodeId
 DELETE /shares/:id

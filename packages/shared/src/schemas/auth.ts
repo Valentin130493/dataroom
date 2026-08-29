@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { optionalText } from './common';
 
 export const emailSchema = z.string().trim().toLowerCase().email('Enter a valid email');
 
@@ -10,7 +11,7 @@ export const passwordSchema = z
 export const signUpSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  name: z.string().trim().min(1).max(120).optional(),
+  name: optionalText(z.string().trim().min(1).max(120)),
 });
 export type SignUpInput = z.infer<typeof signUpSchema>;
 

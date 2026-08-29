@@ -3,6 +3,7 @@ import { extname } from 'node:path';
 import { Injectable, InternalServerErrorException, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import { NodeType } from '@prisma/client';
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE_BYTES,
@@ -65,17 +66,28 @@ export class SupabaseStorageService implements StorageProvider, OnModuleInit {
   }
 
   async usage(): Promise<StorageUsageReport> {
-    const [row] = await this.prisma.$queryRaw<{ objects: bigint; bytes: bigint }[]>`
-      SELECT count(*)::bigint AS objects,
-             coalesce(sum((metadata->>'size')::bigint), 0)::bigint AS bytes
-      FROM storage.objects
-      WHERE bucket_id = ${this.bucket}
-    `;
+    try {
+      const [row] = await this.prisma.$queryRaw<{ objects: bigint; bytes: bigint }[]>`
+        SELECT count(*)::bigint AS objects,
+               coalesce(sum((metadata->>'size')::bigint), 0)::bigint AS bytes
+        FROM storage.objects
+        WHERE bucket_id = ${this.bucket}
+      `;
 
-    return {
-      usedBytes: Number(row?.bytes ?? 0),
-      objectCount: Number(row?.objects ?? 0),
-    };
+      return { usedBytes: Number(row?.bytes ?? 0), objectCount: Number(row?.objects ?? 0) };
+    } catch {
+      return this.usageFromOwnRecords();
+    }
+  }
+
+  private async usageFromOwnRecords(): Promise<StorageUsageReport> {
+    const result = await this.prisma.node.aggregate({
+      where: { type: NodeType.FILE, deletedAt: null },
+      _sum: { size: true },
+      _count: true,
+    });
+
+    return { usedBytes: result._sum.size ?? 0, objectCount: result._count };
   }
 
   async createSignedUpload(key: string, mimeType: string): Promise<SignedUpload> {

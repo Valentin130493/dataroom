@@ -88,6 +88,7 @@ function useNodeMutation<TVariables, TResult>(
     onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.nodeChildren(dataRoomId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dataRooms });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.storageUsage });
       onDone(result);
     },
     onError: (error) => toast.error(messageOf(error, errorMessage)),

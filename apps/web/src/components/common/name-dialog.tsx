@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { nameSchema } from '@dataroom/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,9 @@ export function NameDialog({
   isPending = false,
   onSubmit,
 }: NameDialogProps) {
+  const instanceId = useId();
+  const inputId = `${instanceId}-input`;
+  const formId = `${instanceId}-form`;
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +69,7 @@ export function NameDialog({
           </Button>
           <Button
             type="submit"
-            form="name-dialog-form"
+            form={formId}
             disabled={isPending || value.trim().length === 0}
           >
             {submitLabel}
@@ -74,10 +77,10 @@ export function NameDialog({
         </>
       }
     >
-      <form id="name-dialog-form" onSubmit={submit} className="space-y-1.5">
-        <Label htmlFor="name-dialog-input">{label}</Label>
+      <form id={formId} onSubmit={submit} className="space-y-1.5">
+        <Label htmlFor={inputId}>{label}</Label>
         <Input
-          id="name-dialog-input"
+          id={inputId}
           autoFocus
           value={value}
           aria-invalid={Boolean(error)}

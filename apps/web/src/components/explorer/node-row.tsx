@@ -25,22 +25,20 @@ export function NodeRow({ node, actions, onOpen }: NodeRowProps) {
   const isFolder = node.type === NodeType.FOLDER;
 
   return (
-    <TableRow
-      tabIndex={0}
-      role="button"
-      className="cursor-pointer"
-      onClick={() => onOpen(node)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onOpen(node);
-        }
-      }}
-    >
+    <TableRow className="cursor-pointer" onClick={() => onOpen(node)}>
       <TableCell>
         <div className="flex min-w-0 items-center gap-3">
           <NodeIcon type={node.type} />
-          <span className="truncate font-medium">{node.name}</span>
+          <button
+            type="button"
+            className="truncate rounded font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpen(node);
+            }}
+          >
+            {node.name}
+          </button>
           {!isFolder && node.version > 1 ? (
             <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
               v{node.version}

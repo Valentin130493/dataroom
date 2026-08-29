@@ -397,7 +397,8 @@ pnpm build
 ```bash
 docker compose -f docker-compose.test.yml up -d   # disposable Postgres on :55432
 pnpm --filter @dataroom/api test                  # 40 unit
-pnpm --filter @dataroom/api test:e2e              # 66 end-to-end
+pnpm --filter @dataroom/api test:e2e              # 66 API end-to-end
+pnpm --filter @dataroom/web test:e2e              # 7 browser end-to-end
 ```
 
 The end-to-end suite boots the real Nest application against a real database and replaces only the
@@ -407,21 +408,21 @@ mocked, so the tests exercise the actual SQL, the actual transactions and the ac
 They refuse to run against anything but a local database, because they truncate every table between
 tests; point `TEST_DATABASE_URL` elsewhere and set `ALLOW_REMOTE_TEST_DB=true` only if you mean it.
 
-What they cover, in rough order of how much they earn their keep:
+What they cover:
 
 - **The access matrix** — owner, folder recipient, room recipient, public-link visitor and complete
-  stranger, each against the node itself, an ancestor, a sibling and the room root. This is the part
-  that is expensive to get wrong and tedious to check by hand.
+  stranger, each against the node itself, an ancestor, a sibling and the room root.
 - **Name conflicts**, including two concurrent uploads of the same name racing each other.
 - **Subtree operations** — delete takes the descendants and the rollups with it, move re-roots the
   paths, a folder cannot swallow itself.
 - **Sharing lifecycle** — revoke, expiry, and what happens when the shared item is deleted.
 - **Uploads** — per-file cap, storage quota, single-use upload sessions.
 
-Three real defects surfaced the moment these were written: folders sorted below files because
-Postgres orders enums by declaration rather than alphabetically; a race between two uploads of one
-name returned a 500 instead of resolving; and a share recipient trying to manage the share got a
-`404` where `403` is the honest answer.
+The browser suite runs on Playwright rather than Cypress because the scenario worth covering most —
+owner shares, recipient sees it, owner revokes, recipient loses access — needs two independent
+browser contexts inside one test. It drives the folder tree, the delete confirmation, the upload
+conflict dialog, search, the public link end to end and the permissioned share from both sides.
+Storage writes are intercepted, so no test reaches the real bucket.
 
 ## Security
 

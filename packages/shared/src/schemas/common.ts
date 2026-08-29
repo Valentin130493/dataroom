@@ -10,6 +10,13 @@ import { SortDirection, SortField } from '../enums';
 
 export const idSchema = z.string().uuid();
 
+export function optionalText<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    schema.optional(),
+  );
+}
+
 export const nameSchema = z
   .string()
   .trim()

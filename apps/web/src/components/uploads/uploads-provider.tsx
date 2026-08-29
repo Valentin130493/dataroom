@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { ConflictStrategy, UPLOAD_CONCURRENCY, type NodeSummary } from '@dataroom/shared';
 import { ApiError } from '@/lib/api/http';
 import { uploadsApi } from '@/lib/api/endpoints';
@@ -77,6 +78,8 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         const message =
           error instanceof ApiError ? error.message : 'Could not start the upload';
+
+        toast.error(message);
 
         setItems((current) => [
           ...current,

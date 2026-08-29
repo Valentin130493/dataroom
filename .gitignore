@@ -7,6 +7,10 @@ build/
 out/
 coverage/
 *.tsbuildinfo
+test-results/
+playwright-report/
+blob-report/
+.playwright/
 
 .env
 .env.local

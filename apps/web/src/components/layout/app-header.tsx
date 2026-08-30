@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FolderLock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { StorageMeter } from './storage-meter';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
 
@@ -42,7 +43,8 @@ export function AppHeader() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-2">
+          <StorageMeter />
           <ThemeToggle />
           <UserMenu />
         </div>

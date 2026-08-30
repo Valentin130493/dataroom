@@ -6,6 +6,7 @@ import { useDropzone } from 'react-dropzone';
 import { FolderOpen, UploadCloud } from 'lucide-react';
 import {
   ConflictStrategy,
+  MIME_EXTENSIONS,
   NodeType,
   type ConflictStrategy as ConflictStrategyType,
   type NodeSummary,
@@ -122,7 +123,7 @@ export function ExplorerView({ dataRoomId, folderId }: ExplorerViewProps) {
   const dropzone = useDropzone({
     noClick: true,
     noKeyboard: true,
-    accept: { 'application/pdf': ['.pdf'] },
+    accept: MIME_EXTENSIONS,
     onDrop: handleFiles,
   });
 
@@ -206,7 +207,7 @@ export function ExplorerView({ dataRoomId, folderId }: ExplorerViewProps) {
         <EmptyState
           icon={FolderOpen}
           title="This folder is empty"
-          description="Drag PDFs here, or use the Upload button to add the first documents."
+          description="Drag documents here, or use the Upload button to add the first ones."
           action={
             <Button variant="outline" onClick={() => setIsCreatingFolder(true)}>
               Create a folder
@@ -242,7 +243,7 @@ export function ExplorerView({ dataRoomId, folderId }: ExplorerViewProps) {
           )}
         >
           <UploadCloud className="size-6 text-primary" />
-          <p className="font-medium">Drop PDFs to upload</p>
+          <p className="font-medium">Drop files to upload</p>
           <p className="text-sm text-muted-foreground">
             into {trail.currentName ?? roomName}
           </p>

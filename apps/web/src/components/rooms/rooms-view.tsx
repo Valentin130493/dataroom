@@ -18,7 +18,6 @@ import {
 } from '@/hooks/use-data-rooms';
 import { pluralize } from '@/lib/format';
 import { RoomCard } from './room-card';
-import { StorageMeter } from './storage-meter';
 
 export function RoomsView() {
   const [isCreating, setIsCreating] = useState(false);
@@ -41,13 +40,10 @@ export function RoomsView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <StorageMeter />
-          <Button onClick={() => setIsCreating(true)}>
-            <Plus />
-            New data room
-          </Button>
-        </div>
+        <Button onClick={() => setIsCreating(true)}>
+          <Plus />
+          New data room
+        </Button>
       </header>
 
       {isPending ? (

@@ -28,13 +28,31 @@ describe('uploads', () => {
     });
 
   describe('validation', () => {
-    it('refuses anything that is not a pdf', async () => {
+    it('refuses a type that is not on the allow list', async () => {
       const response = await owner.post(`/data-rooms/${roomId}/uploads`, {
         parentId: null,
-        files: [{ name: 'notes.txt', size: 10, mimeType: 'text/plain' }],
+        files: [{ name: 'clip.mp4', size: 10, mimeType: 'video/mp4' }],
       });
 
       expect(response.status).toBe(400);
+    });
+
+    it('accepts the other document types', async () => {
+      await owner
+        .post(`/data-rooms/${roomId}/uploads`, {
+          parentId: null,
+          files: [
+            { name: 'notes.txt', size: 10, mimeType: 'text/plain' },
+            { name: 'chart.png', size: 20, mimeType: 'image/png' },
+            {
+              name: 'model.xlsx',
+              size: 30,
+              mimeType:
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+          ],
+        })
+        .expect(201);
     });
 
     it('refuses a file over the per-file cap', async () => {

@@ -37,8 +37,9 @@ Legal/Contracts/Master agreement.pdf
 **Folders** — create, nest, rename, delete (with a warning that states exactly how many folders,
 files and bytes disappear), breadcrumb navigation, per-folder totals.
 
-**Files** — multi-file upload with drag-and-drop and per-file progress, cancel and retry; in-app PDF
-viewer; rename with conflict resolution; move to another folder; delete.
+**Files** — multi-file upload with drag-and-drop, a progress dialog with per-file state, cancel and
+retry; in-app viewer for PDFs, images and plain text, with a clear "download it instead" state for
+formats a browser cannot render; rename with conflict resolution; move to another folder; delete.
 
 **Sharing** — a data room, a folder or a single file can be shared. Two modes: a public link (no
 sign-in) and a permissioned share (specific emails). Recipients get read-only access to the item and

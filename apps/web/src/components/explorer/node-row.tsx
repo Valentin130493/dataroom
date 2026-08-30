@@ -28,7 +28,7 @@ export function NodeRow({ node, actions, onOpen }: NodeRowProps) {
     <TableRow className="cursor-pointer" onClick={() => onOpen(node)}>
       <TableCell>
         <div className="flex min-w-0 items-center gap-3">
-          <NodeIcon type={node.type} />
+          <NodeIcon type={node.type} mimeType={node.mimeType} />
           <button
             type="button"
             className="truncate rounded font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"

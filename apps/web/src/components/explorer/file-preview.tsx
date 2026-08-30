@@ -1,7 +1,7 @@
 'use client';
 
 import { Download, ExternalLink, Loader2 } from 'lucide-react';
-import type { FileVersionSummary } from '@dataroom/shared';
+import { canPreviewInline, isImage, type FileVersionSummary } from '@dataroom/shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,7 @@ import { formatBytes, formatDateTime } from '@/lib/format';
 export interface PreviewTarget {
   id: string;
   name: string;
+  mimeType?: string | null;
   size?: number;
   updatedAt?: string;
   version?: number;
@@ -82,12 +83,25 @@ export function FilePreview({ isOpen, onOpenChange, target, source }: FilePrevie
             <div className="flex h-full items-center justify-center">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
-          ) : source.url ? (
-            <iframe src={source.url} title={target.name} className="size-full border-0" />
-          ) : (
+          ) : !source.url ? (
             <PreviewMessage
               title="Preview unavailable"
               detail="The document could not be loaded right now."
+            />
+          ) : isImage(target.mimeType) ? (
+            <div className="flex h-full items-center justify-center overflow-auto p-4">
+              <img
+                src={source.url}
+                alt={target.name}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          ) : canPreviewInline(target.mimeType) ? (
+            <iframe src={source.url} title={target.name} className="size-full border-0" />
+          ) : (
+            <PreviewMessage
+              title="No preview for this format"
+              detail="Download the file to open it in the application it belongs to."
             />
           )}
         </div>

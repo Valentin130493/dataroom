@@ -63,18 +63,23 @@ export function ShareLinkTab({ dataRoomId, nodeId, shares }: ShareLinkTabProps) 
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
-        <Input readOnly value={publicShare.url ?? ''} aria-label="Public link" className="font-mono text-xs" />
-        <Button variant="outline" onClick={copy}>
-          {isCopied ? <Check /> : <Copy />}
-          {isCopied ? 'Copied' : 'Copy'}
-        </Button>
-      </div>
-
       <p className="text-xs text-muted-foreground">
         Anyone with this link can view this item and everything inside it. Revoking the link breaks
         it immediately.
       </p>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          readOnly
+          value={publicShare.url ?? ''}
+          aria-label="Public link"
+          className="min-w-0 flex-1 font-mono text-xs"
+        />
+        <Button variant="outline" className="shrink-0" onClick={copy}>
+          {isCopied ? <Check /> : <Copy />}
+          {isCopied ? 'Copied' : 'Copy'}
+        </Button>
+      </div>
 
       <Button
         variant="destructive"

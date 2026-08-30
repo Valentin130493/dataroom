@@ -85,18 +85,27 @@ export function SharePeopleTab({ dataRoomId, nodeId, shares }: SharePeopleTabPro
   return (
     <div className="space-y-4">
       <form onSubmit={submit} className="space-y-2">
-        <div className="flex gap-2">
+        <p className="text-xs text-muted-foreground">
+          Invited people get read-only access, including everything nested inside.
+        </p>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={raw}
             placeholder="name@company.com, another@company.com"
             aria-label="Emails to invite"
             aria-invalid={Boolean(error)}
+            className="min-w-0 flex-1"
             onChange={(event) => {
               setRaw(event.target.value);
               setError(null);
             }}
           />
-          <Button type="submit" disabled={isPending || raw.trim().length === 0}>
+          <Button
+            type="submit"
+            className="shrink-0"
+            disabled={isPending || raw.trim().length === 0}
+          >
             Invite
           </Button>
         </div>
@@ -105,11 +114,7 @@ export function SharePeopleTab({ dataRoomId, nodeId, shares }: SharePeopleTabPro
           <p role="alert" className="text-xs text-destructive">
             {error}
           </p>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Invited people get read-only access, including everything nested inside.
-          </p>
-        )}
+        ) : null}
       </form>
 
       {restricted && restricted.recipients.length > 0 ? (
